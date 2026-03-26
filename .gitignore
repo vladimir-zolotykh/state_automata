@@ -1,6 +1,7 @@
 .emacs.desktop*
 SOW/
 example.py
+example1.py
 example_clsdec.py
 # Django specific
 *.log
