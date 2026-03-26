@@ -34,7 +34,7 @@ class Connection:
 
     @singledispatchmethod
     def read(self, state):
-        raise NotImplementedError("Cannot read")
+        raise NotImplementedError()
 
     @read.register
     def _(self, state: OpenState):
@@ -46,7 +46,7 @@ class Connection:
 
     @singledispatchmethod
     def write(self, state):
-        raise NotImplementedError("Cannot write")
+        raise NotImplementedError()
 
     @write.register
     def _(self, state: OpenState):
@@ -69,9 +69,8 @@ class Connection:
         raise RuntimeError("Already closed")
 
 
-if __name__ == "__main__":
+def test_connection_smoke():
     conn = Connection()
-    openstate = OpenState()
-    conn.read(openstate)
-    conn.write(openstate)
-    conn.close(openstate)
+    state = OpenState()
+    for method in (conn.read, conn.write, conn.close):
+        method(state)
