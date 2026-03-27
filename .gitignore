@@ -3,6 +3,7 @@ SOW/
 example.py
 example1.py
 example_clsdec.py
+connect_protocol_gpt.py
 # Django specific
 *.log
 *.pot
