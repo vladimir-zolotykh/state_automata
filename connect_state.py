@@ -85,17 +85,27 @@ class Connection:
         self._state: ConnectionState = state
 
 
-if __name__ == "__main__":
+def test_states(capsys):
     conn = Connection()
+
     try:
         conn.read()
     except RuntimeError as err:
         print(f"*** {err}")
+
     conn.open()
     conn.read()
     conn.write("asdf")
     conn.close()
+
     try:
         conn.close()
     except RuntimeError as err:
         print(f"*** {err}")
+
+    out = capsys.readouterr().out
+
+    assert "*** Cannot read closed connection" in out
+    assert "Reading connection" in out
+    assert "Writing connection" in out
+    assert "*** Already closed" in out
