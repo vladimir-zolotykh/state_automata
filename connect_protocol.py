@@ -28,13 +28,13 @@ class OpenState:
         return conn
 
     def close(self, conn: Connection):
-        return type(conn)(_state=ClosedState())
+        return type(conn)(state=ClosedState())
 
 
 @dataclass(frozen=True)
 class ClosedState:
     def open(self, conn: Connection):
-        return type(conn)(_state=OpenState())
+        return type(conn)(state=OpenState())
 
     def read(self, conn: Connection):
         raise RuntimeError("Cannot read closed connection")
@@ -48,26 +48,26 @@ class ClosedState:
 
 @dataclass(frozen=True)
 class Connection:
-    _state: State
+    state: State
 
     def open(self):
-        return self._state.open(self)
+        return self.state.open(self)
 
     def read(self):
-        return self._state.read(self)
+        return self.state.read(self)
 
     def write(self, data):
-        return self._state.write(self, data)
+        return self.state.write(self, data)
 
     def close(self):
-        return self._state.close(self)
+        return self.state.close(self)
 
 
 def new_connection() -> Connection:
-    return Connection(_state=ClosedState())
+    return Connection(state=ClosedState())
 
 
-def test_states(capsys):
+def teststates(capsys):
     conn = new_connection()
 
     try:
