@@ -39,18 +39,18 @@ class OpenState(ConnectionState):
         print(f"Reading connection {conn} ...")
 
     @staticmethod
-    def write(conn: Connection):
+    def write(conn: Connection, data):
         print(f"Writing connection {conn} ...")
 
     @staticmethod
     def close(conn: Connection):
-        conn.new_state(ClosedState)
+        conn.new_state(ClosedState())
 
 
 class ClosedState(ConnectionState):
     @staticmethod
     def open(conn: Connection):
-        conn.new_state(OpenState)
+        conn.new_state(OpenState())
 
     @staticmethod
     def read(conn: Connection):
@@ -75,17 +75,27 @@ class Connection:
     def read(self):
         self._state.read(self)
 
-    def write(self):
-        self._state.write(self)
+    def write(self, data):
+        self._state.write(self, data)
 
     def close(self):
-        self._state.close()
+        self._state.close(self)
 
     def new_state(self, state: ConnectionState):
         self._state: ConnectionState = state
 
 
-def test_connection_smoke():
+if __name__ == "__main__":
     conn = Connection()
-    for method in (conn.open, conn.read, conn.write, conn.close):
-        method()
+    try:
+        conn.read()
+    except RuntimeError as err:
+        print(f"*** {err}")
+    conn.open()
+    conn.read()
+    conn.write("asdf")
+    conn.close()
+    try:
+        conn.close()
+    except RuntimeError as err:
+        print(f"*** {err}")
