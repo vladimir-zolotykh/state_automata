@@ -3,15 +3,15 @@
 # PYTHON_ARGCOMPLETE_OK
 from __future__ import annotations
 
-from typing import Protocol, Self
+from typing import Protocol
 from dataclasses import dataclass
 
 
 class State(Protocol):
-    def open(self, conn: Connection) -> Self: ...  # noqa: E704
-    def read(self, conn: Connection) -> Self: ...  # noqa: E704
-    def write(self, conn: Connection, data) -> Self: ...  # noqa: E704
-    def close(self, conn: Connection) -> Self: ...  # noqa: E704
+    def open(self, conn: Connection) -> Connection: ...  # noqa: E704
+    def read(self, conn: Connection) -> Connection: ...  # noqa: E704
+    def write(self, conn: Connection, data) -> Connection: ...  # noqa: E704
+    def close(self, conn: Connection) -> Connection: ...  # noqa: E704
 
 
 @dataclass(frozen=True)
@@ -21,20 +21,20 @@ class OpenState:
 
     def read(self, conn: Connection):
         print(f"Reading connection {conn} ...")
-        return self
+        return conn
 
     def write(self, conn: Connection, data):
         print(f"Writing connection {conn} ...")
-        return self
+        return conn
 
     def close(self, conn: Connection):
-        return ClosedState()
+        return type(conn)(_state=ClosedState())
 
 
 @dataclass(frozen=True)
 class ClosedState:
     def open(self, conn: Connection):
-        return OpenState()
+        return type(conn)(_state=OpenState())
 
     def read(self, conn: Connection):
         raise RuntimeError("Cannot read closed connection")
@@ -46,21 +46,21 @@ class ClosedState:
         raise RuntimeError("Already closed")
 
 
-@dataclass
+@dataclass(frozen=True)
 class Connection:
     _state: State
 
     def open(self):
-        self._state = self._state.open(self)
+        return self._state.open(self)
 
     def read(self):
-        self._state = self._state.read(self)
+        return self._state.read(self)
 
     def write(self, data):
-        self._state = self._state.write(self, data)
+        return self._state.write(self, data)
 
     def close(self):
-        self._state = self._state.close(self)
+        return self._state.close(self)
 
 
 def new_connection() -> Connection:
@@ -75,10 +75,10 @@ def test_states(capsys):
     except RuntimeError as err:
         print(f"*** {err}")
 
-    conn.open()
-    conn.read()
-    conn.write("asdf")
-    conn.close()
+    conn = conn.open()
+    conn = conn.read()
+    conn = conn.write("asdf")
+    conn = conn.close()
 
     try:
         conn.close()
