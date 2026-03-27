@@ -1,64 +1,93 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# PYTHON_ARGCOMPLETE_OK
 from __future__ import annotations
-from dataclasses import dataclass
+
 from typing import Protocol, Self
+from dataclasses import dataclass
 
 
 class State(Protocol):
-    def open(self, conn: Connection) -> Connection: ...  # noqa: E704
-    def read(self, conn: Connection) -> Connection: ...  # noqa: E704
-    def write(self, conn: Connection, data: str) -> Connection: ...  # noqa: E704
-    def close(self, conn: Connection) -> Connection: ...  # noqa: E704
+    def open(self, conn: Connection) -> Self: ...  # noqa: E704
+    def read(self, conn: Connection) -> Self: ...  # noqa: E704
+    def write(self, conn: Connection, data) -> Self: ...  # noqa: E704
+    def close(self, conn: Connection) -> Self: ...  # noqa: E704
 
 
 @dataclass(frozen=True)
 class OpenState:
-    def open(self, conn: Connection) -> Connection:
+    def open(self, conn: Connection):
         raise RuntimeError(f"Connection {conn} is already open")
 
-    def read(self, conn: Connection) -> Connection:
+    def read(self, conn: Connection):
         print(f"Reading connection {conn} ...")
-        return conn  # unchanged
+        return self
 
-    def write(self, conn: Connection, data: str) -> Connection:
+    def write(self, conn: Connection, data):
         print(f"Writing connection {conn} ...")
-        return conn  # unchanged
+        return self
 
-    def close(self, conn: Connection) -> Connection:
-        return Connection(state=ClosedState())
+    def close(self, conn: Connection):
+        return ClosedState()
 
 
 @dataclass(frozen=True)
 class ClosedState:
-    def open(self, conn: Connection) -> Connection:
-        return Connection(state=OpenState())
+    def open(self, conn: Connection):
+        return OpenState()
 
-    def read(self, conn: Connection) -> Connection:
+    def read(self, conn: Connection):
         raise RuntimeError("Cannot read closed connection")
 
-    def write(self, conn: Connection, data: str) -> Connection:
+    def write(self, conn: Connection, data):
         raise RuntimeError("Cannot write closed connection")
 
-    def close(self, conn: Connection) -> Connection:
+    def close(self, conn: Connection):
         raise RuntimeError("Already closed")
 
 
-@dataclass(frozen=True)
+@dataclass
 class Connection:
-    state: State
+    _state: State
 
-    def open(self) -> Self:
-        # Incompatible return value type (got "Connection", expected "Self")
-        return self.state.open(self)
+    def open(self):
+        self._state = self._state.open(self)
 
-    def read(self) -> Self:
-        return self.state.read(self)
+    def read(self):
+        self._state = self._state.read(self)
 
-    def write(self, data: str) -> Self:
-        return self.state.write(self, data)
+    def write(self, data):
+        self._state = self._state.write(self, data)
 
-    def close(self) -> Self:
-        return self.state.close(self)
+    def close(self):
+        self._state = self._state.close(self)
 
 
 def new_connection() -> Connection:
-    return Connection(state=ClosedState())
+    return Connection(_state=ClosedState())
+
+
+def test_states(capsys):
+    conn = new_connection()
+
+    try:
+        conn.read()
+    except RuntimeError as err:
+        print(f"*** {err}")
+
+    conn.open()
+    conn.read()
+    conn.write("asdf")
+    conn.close()
+
+    try:
+        conn.close()
+    except RuntimeError as err:
+        print(f"*** {err}")
+
+    out = capsys.readouterr().out
+
+    assert "*** Cannot read closed connection" in out
+    assert "Reading connection" in out
+    assert "Writing connection" in out
+    assert "*** Already closed" in out
