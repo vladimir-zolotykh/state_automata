@@ -67,7 +67,7 @@ def new_connection() -> Connection:
     return Connection(state=ClosedState())
 
 
-def teststates(capsys):
+def test_states(capsys):
     conn = new_connection()
 
     try:
